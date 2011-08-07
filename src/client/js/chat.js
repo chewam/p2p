@@ -56,7 +56,7 @@ $(function() {
         function getMessage(data) {
             return '<div class="p2p-chat-msg">'
                 + '<div class="p2p-chat-msg-pic">'
-                    + '<img src="https://mail.google.com/a/chewam.com/images/blue_ghost.jpg" />'
+                    + '<img src="../../src/client/img/ghost.jpg" />'
                 + '</div>'
                 + '<div class="p2p-chat-msg-name">Gary</div>'
                 + '<div class="p2p-chat-msg-txt">'+ data.txt +'</div>'
