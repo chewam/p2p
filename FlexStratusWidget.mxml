@@ -1,0 +1,754 @@
+<?xml version="1.0" encoding="utf-8"?>
+ 
+    
+<mx:Application xmlns:mx="http://www.adobe.com/2006/mxml"   layout="absolute" applicationComplete="init()"  backgroundColor="0xffffff" width="320" height="240"   verticalScrollPolicy="off"  horizontalScrollPolicy="off"  >
+    <mx:Fade id="fadeOut" alphaFrom="0.9" alphaTo="0.0" duration="200" startDelay="50"/>
+    <mx:Fade id="fadeIn" alphaFrom="0.0" alphaTo="0.9" duration="100" />
+    <mx:Script>
+        <![CDATA[
+            //import mx.charts.chartClasses.StackedSeries;
+            //import mx.formatters.DateFormatter;
+            import mx.events.SliderEvent;
+            import mx.events.FlexEvent;
+            import mx.collections.ArrayCollection;
+            import mx.events.ItemClickEvent;
+            import flash.events.SampleDataEvent;
+            
+            // rtmfp server address (Adobe Stratus or FMS)
+            [Bindable] private var connectUrl:String = "rtmfp://stratus.rtmfp.net";
+
+            // developer key, please insert your developer key here
+            private const DeveloperKey:String = "406740e2921a3f22887fe6e7-8e00c53a9f75";
+            
+            // this is the connection to rtmfp server
+            private var netConnection:NetConnection;    
+            
+            // after connection to rtmfp server, publish listener stream to wait for incoming call 
+            private var listenerStream:NetStream;
+ 
+            
+            // outgoing media stream (audio, video, text and some control messages)
+            private var outgoingStream:NetStream;
+            
+            // incoming media stream (audio, video, text and some control messages)
+            private var incomingStream:NetStream;
+            
+            // ID management serice
+            //private var idManager:AbstractIdManager;
+
+            private var remoteVideo:Video;
+            
+            // login/registration state machine
+            [Bindable] private var loginState:int;
+            
+            private const LoginNotConnected:int = 0;
+            private const LoginConnecting:int = 1;
+            private const LoginConnected:int = 2;
+            private const LoginDisconnecting:int = 3;
+            
+            // call state machine
+            [Bindable] private var callState:int;
+            
+            private const CallNotReady:int = 0;
+            private const CallReady:int = 1;
+            private const CallCalling:int = 2;
+            private const CallRinging:int = 3;
+            private const CallEstablished:int = 4;
+            private const CallFailed:int = 5;
+            
+            // available microphone devices
+            [Bindable] private var micNames:Array;
+            private var micIndex:int = 0;
+            
+            // available camera deviced
+            [Bindable] private var cameraNames:Array;
+            private var cameraIndex:int = 0;
+ 
+            
+            // user name is saved in local shared object
+            private var localSO:SharedObject;
+                    
+            [Bindable] private var remoteName:String = "";
+            
+            private var callTimer:int;
+            
+            // charts
+            private var audioRate:Array = new Array(30);
+            [Bindable] private var audioRateDisplay:ArrayCollection = new ArrayCollection();
+            private var videoRate:Array = new Array(30);
+            [Bindable] private var videoRateDisplay:ArrayCollection = new ArrayCollection();
+            private var srtt:Array = new Array(30);
+            [Bindable] private var srttDisplay:ArrayCollection = new ArrayCollection();
+            
+            private const defaultMacCamera:String = "USB Video Class Video";
+        
+        
+            // quickprez settings
+            
+            private var jsCallback:String = '';
+            private var jsCallbackClose:String = '';
+            
+            [Bindable]
+            private var isMaster:Boolean = false;
+            
+            [Bindable]
+            private var enableAudio:Boolean = false;
+            
+            [Bindable]
+            private var enableVideo:Boolean = false;
+            
+            private var inChannel:String = 'master';
+            private var outChannel:String = 'client';
+            private var publishId:String;
+            private var receiveId:String;
+            
+            //  end quickprez settings
+            
+            
+            private var _isMouseInSWF:Boolean = false;
+   
+
+            [Bindable]
+            private function get isMouseInSWF():Boolean {
+                return _isMouseInSWF;
+            }
+
+            private function set isMouseInSWF(value:Boolean):void {
+                _isMouseInSWF = value;
+            }
+
+
+            
+            private function stage_mouseLeave(evt:Event):void {
+                isMouseInSWF = false;
+                if (fadeIn.isPlaying) fadeIn.stop();
+                panelSettings.visible = false;
+
+            }
+
+            private function stage_mouseMove(evt:MouseEvent):void {
+                if (!isMouseInSWF) {
+                    isMouseInSWF = true;
+                    if (fadeOut.isPlaying) fadeOut.stop();
+                    panelSettings.visible = true;
+                }
+            }
+            
+            private function jscall(data:String):void
+            {        
+                if (ExternalInterface.available) {
+                    ExternalInterface.call(jsCallback, data);
+                    }
+            }
+            
+            private function API_remoteReady(  ):void {
+                API_askId();
+            }
+            private function API_askId(  ):void {
+                sendNearId();
+            }
+            private function displayRemote():void {
+                if ( loginState != LoginConnected ) {
+                    return;
+                }
+                remoteVideoDisplay.visible = true;
+                
+                //jscall('displayRemote');
+                // received remote id, display it
+                if( receiveId != null) {
+                     if (incomingStream)
+                    {
+                        incomingStream.close();
+                        incomingStream.removeEventListener(NetStatusEvent.NET_STATUS, incomingStreamHandler);
+                    }                   
+                    incomingStream = new NetStream(netConnection, receiveId);
+                    incomingStream.addEventListener(NetStatusEvent.NET_STATUS, incomingStreamHandler);
+                    }
+                
+                if( incomingStream != null ){
+                    incomingStream.play( inChannel );
+                    // set volume for incoming stream
+                    var st:SoundTransform = new SoundTransform(speakerVolumeSlider.value);
+                    incomingStream.soundTransform = st;
+                    incomingStream.receiveAudio(true);
+                    incomingStream.receiveVideo(true);
+                    remoteVideo = new Video(remoteVideoDisplay.width, remoteVideoDisplay.height);
+                    remoteVideo.width = remoteVideoDisplay.width;
+                    remoteVideo.height = remoteVideoDisplay.height;
+                    remoteVideo.attachNetStream(incomingStream);
+                    remoteVideoDisplay.addChild(remoteVideo);
+                    }
+                 else {
+                    remoteVideoDisplay.visible = false;
+                 }
+                if (remoteVideoDisplay.visible) {
+                    // launch remote sound if enabled
+                    if (isMaster) {
+                        if ( inviteCheckbox.selected ) {
+                            incomingStream.receiveAudio(true);
+                        }
+                        else {
+                            incomingStream.receiveAudio(false);
+                        }
+                    }
+                    incomingStream.receiveAudio(true);
+                }
+                arrangeVideos();
+            }
+            
+            public function hideRemote():void {
+                if( incomingStream != null ) {
+                    incomingStream.receiveAudio(false);
+                    incomingStream.receiveVideo(false);
+                    if (remoteVideo!=null) {
+                        remoteVideoDisplay.removeChild(remoteVideo);
+                    }
+                    //incomingStream.close();
+                    }
+                remoteVideoDisplay.visible = false;
+                arrangeVideos();
+            }
+            public function arrangeVideos():void {
+                if (!enableVideo || !sendVideoCheckbox.selected ) {
+                    localVideoDisplay.visible = false;
+                    localVideoDisplay.width = 0;
+                    localVideoDisplay.height = 0;
+                    remoteVideoDisplay.visible = true;
+                    remoteVideoDisplay.width = stage.width;
+                    remoteVideoDisplay.height = stage.height;
+                }
+                else {
+                    localVideoDisplay.visible = true;
+                    if (remoteVideoDisplay.visible) {
+                        localVideoDisplay.width = (0.4 * stage.width);
+                        localVideoDisplay.height = (0.4 * stage.height);
+                    }
+                    else {
+                        localVideoDisplay.width = stage.width;
+                        localVideoDisplay.height = stage.height;
+                    }
+                }
+            }
+            
+            private function API_gotNearId( nearId:String ):void {
+                //API_gotNearId
+                // got remote ID
+                receiveId = nearId;
+                if (isMaster) {
+                    if (!inviteCheckbox.selected) {
+                        // clients are disabled !
+                        return;
+                    }
+                }
+                displayRemote();
+            }
+            private function API_enable( audio:Boolean, video:Boolean ):void {
+                if (isMaster) return;
+               
+                if (audio && !enableAudio ) {
+                    // switch on self audio
+                    
+                }
+                else if (enableAudio && !audio) {
+                    // switch off self audio
+                    
+                }
+                if (video && !enableVideo ) {
+                    // switch on self video
+                    localVideoDisplay.visible = true;
+                    if (!isMaster ||(isMaster && inviteCheckbox.selected) ) remoteVideoDisplay.visible = true;
+                }
+                else if (enableVideo && !video) {
+                    // switch off self video
+                    localVideoDisplay.visible = false;
+                    if (!isMaster || (isMaster && !inviteCheckbox.selected) ) remoteVideoDisplay.visible = false;
+                }
+                 enableAudio = audio;
+                 enableVideo = video;
+               
+                 arrangeVideos();
+                 
+                 // show settings if something changed
+                 if ( audio || video ) panelSettings.visible = true;
+            }
+            
+            // called when application is loaded                    
+            private function init():void
+            {        
+                Security.allowDomain("*");
+                jsCallback  = root.loaderInfo.parameters.cb;
+                jsCallbackClose  = root.loaderInfo.parameters.closecb;
+                isMaster = (root.loaderInfo.parameters.mode == 'master');
+                enableAudio = (root.loaderInfo.parameters.a == '1');
+                enableVideo = (root.loaderInfo.parameters.v == '1');
+                
+                statusbar.visible = (root.loaderInfo.parameters.debug == '1')
+                
+                if (isMaster) {
+                    inChannel = 'client';
+                    outChannel = 'master';
+                }
+                
+                if (ExternalInterface.available) {
+                    ExternalInterface.addCallback("API_gotNearId", API_gotNearId); 
+                    ExternalInterface.addCallback("API_askId", API_askId ); 
+                    ExternalInterface.addCallback("API_remoteReady", API_remoteReady); 
+                    ExternalInterface.addCallback("API_enable", API_enable); 
+                }
+
+                
+                stage.addEventListener(MouseEvent.MOUSE_MOVE, stage_mouseMove);
+                stage.addEventListener(Event.MOUSE_LEAVE, stage_mouseLeave);
+                
+                stage.scaleMode = StageScaleMode.SHOW_ALL
+                
+                status("Player: " + Capabilities.version + "\n");
+                
+                loginState = LoginNotConnected;
+                callState = CallNotReady;
+                
+                localSO = SharedObject.getLocal("QuickPrezSettings");
+                                
+                var mics:Array = Microphone.names;
+                if (mics)
+                {
+                    micNames = mics;
+                }
+                else
+                {
+                    status("No microphone available.\n");
+                }
+                
+                var cameras:Array = Camera.names;
+                if (cameras)
+                {
+                    cameraNames = cameras;
+                }
+                else
+                {
+                    status("No camera available.\n");
+                }
+ 
+                        
+                // selected mic device
+                micIndex = 0;
+                if (localSO.data.hasOwnProperty("micIndex"))
+                {
+                    micIndex = localSO.data.micIndex;
+                }
+                
+                micSelection.selectedIndex = micIndex;
+                
+                // set Mac default camera
+                if (Capabilities.os.search("Mac") != -1)
+                {
+                    for (cameraIndex = 0; cameraIndex < cameras.length; cameraIndex++)
+                    {
+                        if (cameras[cameraIndex] == defaultMacCamera)
+                        {
+                            break;
+                        }
+                    }    
+                }
+                    
+                // selected camera device
+                if (localSO.data.hasOwnProperty("cameraIndex"))
+                {
+                    cameraIndex = localSO.data.cameraIndex;
+                }
+                
+                cameraSelection.selectedIndex = cameraIndex;
+                
+                // mic volume
+                var micVolume:int = 50;
+                
+                // speaker volume
+                var speakerVolume:Number = 0.5;
+                if (localSO.data.hasOwnProperty("speakerVolume"))
+                {
+                    speakerVolume = localSO.data.speakerVolume;
+                }
+                
+                speakerVolumeSlider.value = speakerVolume;
+                
+                // configure audio and video
+                var mic:Microphone = Microphone.getMicrophone(micIndex);
+                if (mic)
+                {
+                    mic.codec = SoundCodec.SPEEX;
+                    mic.setSilenceLevel(0);
+                    mic.framesPerPacket = 1;
+                    mic.gain = micVolume;
+                }
+                
+                var camera:Camera = Camera.getCamera(cameraIndex.toString());
+                if (camera)
+                {
+                    camera.setMode(320, 240, 15);
+                    camera.setQuality(0, 80);
+                }
+                onConnect()
+                
+                if (!enableVideo && !enableAudio) panelSettings.visible = false;
+            }
+                    
+            private function status(msg:String):void
+            {
+                statusArea.text += msg;
+                statusArea.validateNow();
+                statusArea.verticalScrollPosition = statusArea.textHeight;
+                trace("ScriptDebug: " + msg);
+            }
+            
+            // user clicked connect
+            private function onConnect():void
+            {
+                statusArea.text = "";
+                
+                localSO.flush();
+                
+                netConnection = new NetConnection();
+                netConnection.addEventListener(NetStatusEvent.NET_STATUS, netConnectionHandler);
+                
+                try
+                {
+                    netConnection.connect(connectUrl + "/" + DeveloperKey);
+                }
+                catch (e:ArgumentError)
+                {
+                    status("Incorrect connect URL\n");
+                    return;
+                }
+                
+                loginState = LoginConnecting;    
+                
+                status("Connecting to " + connectUrl + "\n");
+            }
+            
+            private function netConnectionHandler(event:NetStatusEvent):void
+            {
+                status("NetConnection event: " + event.info.code + "\n");
+                
+                switch (event.info.code)
+                {
+                    case "NetConnection.Connect.Success":
+                        connectSuccess();
+                        break;
+                        
+                    case "NetConnection.Connect.Closed":
+                        loginState = LoginNotConnected;
+                        callState = CallNotReady;
+                        break;
+                        
+                    case "NetStream.Connect.Success":
+                        // we get this when other party connects to our control stream our outgoing stream
+                        status("Connection from: " + event.info.stream.farID + "\n");
+                        break;
+                        
+                    case "NetConnection.Connect.Failed":
+                        status("Unable to connect to " + connectUrl + "\n");
+                        loginState = LoginNotConnected;
+                        break;
+                        
+                    case "NetStream.Connect.Closed":
+                        //onHangup();
+                        break;
+                 }
+             }
+ 
+            private function outgoingStreamHandler(event:NetStatusEvent):void
+            {
+                status("Outgoing stream event: " + event.info.code + "\n");
+                switch (event.info.code)
+                {
+                    case "NetStream.Play.Start":
+ 
+                        break;
+                }
+            }
+            
+            private function incomingStreamHandler(event:NetStatusEvent):void
+            {
+                status("Incoming stream event: " + event.info.code + "\n");
+                switch (event.info.code)
+                {
+                    case "NetStream.Play.UnpublishNotify":
+                        hideRemote();
+                        break;
+                    case "NetStream.Play.PublishNotify":
+                        if (isMaster && inviteCheckbox.selected) {
+                            displayRemote();
+                        }
+                        else if (!isMaster) {
+                            displayRemote();
+                        }   
+                        break;
+                 }
+            }
+            
+            // connection to rtmfp server succeeded and we register our peer ID with an id exchange service
+            // other clients can use id exchnage service to lookup our peer ID
+            private function connectSuccess():void
+            {
+                status("Connected, my ID: " + netConnection.nearID + "\n");
+                publishId = netConnection.nearID
+
+                loginState = LoginConnected;
+                
+                // publish our stream
+                outgoingStream = new NetStream(netConnection, NetStream.DIRECT_CONNECTIONS);
+                outgoingStream.addEventListener(NetStatusEvent.NET_STATUS, outgoingStreamHandler);
+                outgoingStream.publish( outChannel );
+                
+                sendNearId();
+              
+            }
+            private function sendNearId():void {
+                // send our id to remote
+                if (publishId) jscall('API_gotNearId("' + publishId  + '");');
+                if (!receiveId) {
+                        jscall('API_askId();');
+                }
+            }
+
+                        
+            private function onDisconnect():void
+            {
+                status("Disconnecting.\n");
+
+                callState = CallNotReady;
+ 
+                loginState = LoginNotConnected;
+                
+                netConnection.close();
+                netConnection = null;
+            }
+            private function close():void
+            {
+                if (ExternalInterface.available && jsCallbackClose != '') {
+                    ExternalInterface.call(jsCallbackClose);
+                }
+                 incomingStream.close();
+                 netConnection.close();
+                 
+            }
+            
+            private function doInvite():void
+            {
+                if (inviteCheckbox.selected)
+                {
+                    // send invitation
+                    // activite in stream
+                    displayRemote();
+                    jscall('API_enable(' + sendAudioCheckbox.selected  + ', ' + sendVideoCheckbox.selected  + ');');
+                }
+                else 
+                {
+                    // desactivate instream
+                    hideRemote();
+                    jscall('API_enable(false, false);');
+                    
+                }
+            }
+                
+            private function startAudio():void
+            {
+                if (sendAudioCheckbox.selected)
+                {
+                    var mic:Microphone = Microphone.getMicrophone(micIndex);
+                    if (mic && outgoingStream)
+                    {
+                        outgoingStream.attachAudio(mic);
+                    }
+                    sendNearId();
+                }
+                else
+                {
+                    if (outgoingStream)
+                    {
+                        outgoingStream.attachAudio(null);
+                    }
+                }
+                
+                 if ( isMaster ) {
+                      // reactivate remote sound
+                      if (incomingStream != null) {
+                        incomingStream.receiveAudio(inviteCheckbox.selected && sendAudioCheckbox.selected);
+                        }
+                      jscall('API_enable(' + (inviteCheckbox.selected && sendAudioCheckbox.selected)  + ', ' + (inviteCheckbox.selected && sendVideoCheckbox.selected)  + ');');
+                }
+ 
+            }
+            
+            private function startVideo():void
+            {
+                if (sendVideoCheckbox.selected)
+                {
+                    var camera:Camera = Camera.getCamera(cameraIndex.toString());
+                    if (camera)
+                    {
+                        localVideoDisplay.attachCamera(camera);
+                        if (outgoingStream)
+                        {
+                            outgoingStream.attachCamera(camera);
+                        }
+                        localVideoDisplay.visible = true;                     
+                    }
+                    sendNearId();
+                }
+                else
+                {
+                    localVideoDisplay.attachCamera(null);
+                    if (outgoingStream)
+                    {
+                        outgoingStream.attachCamera(null);
+                    }
+                   // hide my video
+                   localVideoDisplay.visible = false;
+                }
+                arrangeVideos();
+                if (isMaster) { 
+                    remoteVideoDisplay.visible = (inviteCheckbox.selected && sendVideoCheckbox.selected);
+                    if (incomingStream != null) incomingStream.receiveVideo(inviteCheckbox.selected && sendVideoCheckbox.selected);
+                    jscall('API_enable(' + (inviteCheckbox.selected && sendAudioCheckbox.selected)  + ', ' + (inviteCheckbox.selected && sendVideoCheckbox.selected)  + ');');
+                    }
+            }
+ 
+            
+            private function speakerVolumeChanged(e:SliderEvent):void
+            {
+                if (incomingStream != null)
+                {
+                    var st:SoundTransform = new SoundTransform(e.value);
+                    incomingStream.soundTransform = st;
+                    status("Setting speaker volume to: " + e.value + "\n");
+                }
+                localSO.data.speakerVolume = e.value;
+                localSO.flush();
+            }
+     
+ 
+            
+            private function micChanged(event:Event):void
+            {
+                var oldMicIndex:int = micIndex;
+                micIndex = micSelection.selectedIndex;
+                
+                var mic:Microphone = Microphone.getMicrophone(micIndex);
+                var oldMic:Microphone = Microphone.getMicrophone(oldMicIndex);
+                    
+                mic.codec = oldMic.codec;
+                mic.rate = oldMic.rate;
+                mic.encodeQuality = oldMic.encodeQuality;
+                mic.framesPerPacket = oldMic.framesPerPacket;
+                mic.gain = oldMic.gain;
+                mic.setSilenceLevel(oldMic.silenceLevel);
+                
+                sendAudioCheckbox.selected = true;
+                
+                if (outgoingStream != null)
+                {    
+                    outgoingStream.attachAudio(mic);
+                }
+                
+                localSO.data.micIndex = micIndex;
+                localSO.flush();
+            }
+                        
+            private function cameraChanged(event:Event):void
+            {
+                var oldCameraIndex:int = cameraIndex;
+                cameraIndex = cameraSelection.selectedIndex;
+                
+                var camera:Camera = Camera.getCamera(cameraIndex.toString());
+                var oldCamera:Camera = Camera.getCamera(oldCameraIndex.toString());
+                
+                camera.setMode(320, 240, 15);
+                camera.setQuality(0, oldCamera.quality);
+                
+                sendVideoCheckbox.selected = true;
+                
+                // when user changes video device, we want to show preview
+                localVideoDisplay.attachCamera(camera);
+                    
+                if (callState == CallEstablished)
+                {    
+                    outgoingStream.attachCamera(camera);
+                }
+                
+                localSO.data.cameraIndex = cameraIndex;
+                localSO.flush();
+            }
+            
+                
+                [Bindable]
+                [Embed(source="assets/volume.png")]
+                 public var volumeIcon:Class;
+                
+                [Bindable]
+                [Embed(source="assets/microphone.png")]
+                 public var micIcon:Class;
+                
+                [Bindable]
+                [Embed(source="assets/webcam.png")]
+                 public var cameraIcon:Class;
+                
+                [Bindable]
+                [Embed(source="assets/users.png")]
+                 public var groupIcon:Class;
+
+                [Bindable]
+                [Embed(source="assets/cross-circle.png")]
+                 public var closeIcon:Class;
+
+            ]]>
+        
+        
+    </mx:Script>
+ 
+    
+
+    <mx:VideoDisplay id="remoteVideoDisplay"   width="100%" height="100%" visible="false"  />
+    <mx:VideoDisplay id="localVideoDisplay"  right="0" bottom="0" height="100%"  visible="{enableVideo}"  width="100%"   alpha="0.8"  borderColor="#CCCCCC" volume="0"/>
+
+    <mx:VBox   enabled="{loginState == LoginConnected}"   bottom="0" width="100%" height="100%" visible="true"  horizontalAlign="center" verticalAlign="middle" >
+ 
+       <mx:Box showEffect="{fadeIn}" hideEffect="{fadeOut}" id="panelSettings" paddingLeft="10"  paddingTop="10" paddingBottom="10" paddingRight="10" backgroundColor="white" backgroundAlpha="0.8" visible="true" cornerRadius="5" borderStyle="solid" >
+            <mx:HBox width="100%" horizontalAlign="center" visible="{enableAudio}" id="audioSettings">
+                <mx:Image source="{micIcon}"  />
+                 <mx:CheckBox toolTip="Cochez cette case pour diffuser votre micro" id="sendAudioCheckbox" label="Micro" click="startAudio()" selected="false" styleName="labelStyle" />
+                 <mx:ComboBox id="micSelection" dataProvider="{micNames}" change="micChanged(event)"  width="180"  />
+            </mx:HBox >
+            
+            <mx:HBox width="100%" horizontalAlign="left" visible="{enableVideo}" id="videoSettings">
+                <mx:Image source="{cameraIcon}"  />
+                <mx:CheckBox toolTip="Cochez cette case pour diffuser votre vidéo"   id="sendVideoCheckbox" label="Video" click="startVideo()" selected="false" styleName="labelStyle"/>
+                <mx:ComboBox id="cameraSelection" dataProvider="{cameraNames}" change="cameraChanged(event)"   width="180"    />
+            </mx:HBox >
+
+            <mx:HBox width="100%" horizontalAlign="left" visible="{isMaster}" id="inviteBox">
+                <mx:Image source="{groupIcon}"  />
+                <mx:CheckBox id="inviteCheckbox" label="Autoriser les correspondants   "  toolTip="Cochez cette case pour permettre à vos correspondants d'utiliser leur webcam et/ou micro" click="doInvite()" selected="false" styleName="labelStyle" />
+            </mx:HBox >
+            
+            <mx:HBox width="100%" horizontalAlign="left"   >
+                <mx:Image source="{volumeIcon}"  /> 
+                <mx:Label text="Volume :" /> 
+                <mx:HSlider id="speakerVolumeSlider" showDataTip="false"  minimum="0" maximum="1" change="speakerVolumeChanged(event)" showTrackHighlight="true" height="10"/>
+            </mx:HBox >
+            
+            <mx:HBox width="100%" horizontalAlign="center"  >
+                <mx:Button fontSize="14" icon="{closeIcon}" label="Arrêter" click="close()"/>
+            </mx:HBox>
+            
+        </mx:Box>
+        
+    </mx:VBox>
+    
+    <mx:VBox  x="10" bottom="10" width="90%" visible="false" id="statusbar">
+        <mx:TextArea id="statusArea" width="100%" height="110" fontSize="10" editable="false" verticalScrollPolicy="auto" />
+        <mx:Button label="Clear" click="statusArea.text=''" />
+    </mx:VBox>
+   
+ 
+</mx:Application>

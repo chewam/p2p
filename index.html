@@ -1,0 +1,41 @@
+<html>
+    <head>
+        <title>P2PConnection</title>
+        <link rel="stylesheet" type="text/css" href="style.css" />
+        <script type="text/javascript" charset="utf-8" src="P2PConnection.js"></script>
+        <script type="text/javascript" charset="utf-8" src="script.js"></script>
+    </head>
+
+    <body onload="onBodyLoad()">
+
+        <div class="page">
+
+            <h1>p2p chat</h1>
+
+            <div class="table">
+                <div class="row"><div>local ID: </div><div id="localid"></div></div>
+                <div class="row"><div>remote ID: </div><div><input id="remoteid" /><button onclick="connect()">connect</button></div></div>
+            </div>
+
+            
+
+            <div class="p2p-chat">
+                <div id="webcam" class="p2p-chat-webcam">
+                    <!-- <div class="p2p-chat-webcam-wrapper"> -->
+                        <object id='SWFP2PConnection' classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' codebase='http://fpdownload.macromedia.com/get/flashplayer/current/swflash.cab' height='100%' width='100%'>
+                            <param name='src' value='P2PConnection.swf'/>
+                            <param name='flashVars' value=''/>
+                            <param name='quality' value='high'/>
+                            <param name='BGCOLOR' value='#FFCC00'/>
+                            <embed name='SWFP2PConnection' src='P2PConnection.swf' pluginspage='http://www.adobe.com/go/getflashplayer' height='100%' width='100%' flashVars='' bgcolor='#FFCC00'/>
+                        </object>
+                    <!-- </div> -->
+                </div>
+                <div id="wall" class="p2p-chat-wall"></div>
+                <input id="message" class="p2p-chat-message"/><a class="button white medium" onclick="send()">send</a>
+            </div>
+
+        </div>
+
+    </body>
+</html>

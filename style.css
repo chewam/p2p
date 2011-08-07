@@ -1,0 +1,85 @@
+@import url("buttons.css");
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #DDDDDD;
+}
+
+.page {
+    width: 984px;
+    padding: 20px;
+    margin: 20px auto;
+    border-radius: 3px;
+    background-color: #FFFFFF;
+    box-shadow: 0px 0px 4px 4px #BBBBBB;
+}
+
+.page h1 {
+    margin: 0;
+    color: #A21E18;
+}
+
+.page .row {
+    display: -moz-box;
+    display: -webkit-box;
+    -moz-box-align: stretch;
+    -webkit-box-align: stretch;
+/*    box-align: stretch;*/
+/*    box-orient: horizontal;*/
+/*    box-orient: horizontal;*/
+}
+
+.page .row :first-child {
+    width: 100px;
+    text-align: right;
+}
+
+.page .row :last-child {
+/*    flex: 1;*/
+    -moz-box-flex: 1;
+    -webkit-box-flex: 1;
+}
+
+.p2p-chat {
+    width: 240px;
+    border: 1px solid #666666;
+}
+
+.p2p-chat-webcam {
+    /*width: 300px;*/
+    height: 240px;
+    background: blue;
+}
+
+/*.p2p-chat-webcam-wrapper {
+    width: 250px;
+    height: 250px;
+    position: absolute;
+}*/
+
+.p2p-chat-message {
+    width: 170px;
+    padding: 4px;
+    border-radius: 3px;
+    border: 1px solid #999999;
+}
+
+.p2p-chat-wall {
+    height:100px;
+/*    width:300px;*/
+    background:#EFEFEF;
+    overflow:auto
+}
+
+/*.p2p-chat button {
+    padding: 3px;
+    font-weight:bold;
+    border-radius: 3px;
+    color: rgba(0, 0, 0, 0.9);
+    border: 1px solid #999999;
+    box-shadow: 0px 0px 2px #BBBBBB;
+    text-shadow: 1px 1px 0px #DDDDDD;
+    background: -moz-linear-gradient(top,rgba(255, 255, 255, 1),rgba(185, 185, 185, 1));
+    background: -webkit-gradient(linear,0% 0%,0% 100%,from(rgba(255, 255, 255, 1)),to(rgba(185, 185, 185, 1)));
+}*/
