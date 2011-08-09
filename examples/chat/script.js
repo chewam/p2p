@@ -1,20 +1,25 @@
 $(function() {
-    P2PConnection.afterInit = afterInit;
+    // P2PConnection.afterInit = afterInit;
     P2PConnection.afterPeerConnect = afterPeerConnect;
 });
 
-function afterInit(id) {
-    console.log("afterInit", this, arguments);
-    document.getElementById('localid').innerHTML = id;
-}
+// function afterInit(id) {
+//     console.log("afterInit", this, arguments);
+//     document.getElementById('localid').innerHTML = id;
+// }
 
 function connect(id) {
-    var remoteId = document.getElementById('remoteid').value;
-    P2PConnection.connect(remoteId);
+    // var remoteId = document.getElementById('remoteid').value;
+    // P2PConnection.connect(remoteId);
+}
+
+function register() {
+    var name = document.getElementById('name').value;
+    P2PChat.register(name);
 }
 
 function afterPeerConnect(farId) {
-    document.getElementById('remoteid').value = farId;
+    // document.getElementById('remoteid').innerHTML = farId;
 }
 
 

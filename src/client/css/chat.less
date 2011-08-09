@@ -9,44 +9,147 @@
     filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#ffffff', endColorstr='#ededed',GradientType=0 );
     background: linear-gradient(top, #ffffff 0%,#f6f6f6 47%,#ededed 100%);*/
 
-.p2p-chat {
-    width: 320;
+
+/**** STATIC
+*******************************************************************************/
+@color: #4D926F;
+@width: 320px;
+
+
+/**** FUNCTIONS
+*******************************************************************************/
+.p2p-radius (@radius: 3px) {
+  border-radius: @radius;
+  -webkit-border-radius: @radius;
+  -moz-border-radius: @radius;
+  -khtml-border-radius: @radius;
+}
+.p2p-box (@margin: 4px, @bg: #FFFFFF) {
+    .p2p-radius;
+    margin: @margin;
     border: 1px solid #DDDDDD;
-    border-radius: 3px;
-    background-color: #EEEEEE;
+    background: @bg;
+}
+
+
+/**** COMMON
+*******************************************************************************/
+.p2p-clear {
+    clear: both;
+}
+
+
+/**** TOOLBAR
+*******************************************************************************/
+.p2p-tb {
+    padding: 4px;
+    .p2p-box(4px, #EEEEEE);
+    .p2p-tb-title {
+        color: #A21E18;
+        font-weight: bold;
+        margin-top: -1px;
+        position: absolute;
+        text-shadow: 1px 1px 1px #FFFFFF;
+    }
+    .p2p-tb-btns {
+        float: right;
+        .p2p-tb-btn {
+            float: right;
+/*            width: 88px;*/
+            padding-right: 4px;
+            padding-left: 4px;
+            text-align: center;
+            .p2p-box(0 0 0 4px, #EEEEEE);
+        }
+    }
+}
+
+
+/**** USER LIST
+*******************************************************************************/
+.p2p-userlist {
+    width: 200px;
+    .p2p-box(0, #EEEEEE);
     font-family: 'Lato', sans-serif;
 
-    .p2p-chat-ctn {
-        width: 320;
-        height: 400;
-        margin: 4px;
-        background-color: #FFFFFF;
-        border: 1px solid #DDDDDD;
-        border-radius: 3px;
+    .p2p-userlist-list {
+        .p2p-box;
+        height: 250px;
+        overflow: auto;
+
+        .p2p-userlist-user {
+            &.selected {
+                background-color: #EFEFEF;
+            }
+
+            .p2p-userlist-user-pic {
+                float: left;
+                padding: 0 4px 4px;
+                img {
+                    width: 32px;
+                    height: 32px;
+                    margin-top: 4px;
+                }
+            }
+
+            .p2p-userlist-user-id {
+                font-size: 0.6em;
+                margin-left: 38px;
+                white-space: nowrap;
+            }
+        }
     }
+}
+
+
+/**** CHAT
+*******************************************************************************/
+.p2p-chat {
+    width: @width;
+    .p2p-box(0, #EEEEEE);
+    font-family: 'Lato', sans-serif;
 
     .p2p-chat-cam {
         height: 180px;
-        margin: 4px;
-        border: 1px solid #DDDDDD;
-        border-radius: 3px;
-        background-color: #FFFFFF;
+        .p2p-box;
+        &.hidden {
+            left: -1000px;
+            position: absolute;
+        }
     }
 
     .p2p-chat-wall {
         height: 180px;
-        margin: 4px;
         overflow: auto;
-        border: 1px solid #DDDDDD;
-        border-radius: 3px;
-        background-color: #FFFFFF;
+        .p2p-box;
+
+        .p2p-chat-msg {
+            padding: 0 4px 4px;
+        }
+
+        .p2p-chat-msg-pic {
+            float: left;
+            margin-right: 4px;
+        }
+
+        .p2p-chat-msg-pic img {
+            width: 32px;
+            height: 32px;
+            margin-top: 4px;
+        }
+
+        .p2p-chat-msg-name {
+            font-weight: bold;
+        }
+
+        .p2p-chat-msg-txt {
+            font-size: 0.9em;
+            margin-left: 35px;
+        }
     }
 
     .p2p-chat-txt {
-        margin: 4px;
-        background-color: #FFFFFF;
-        border: 1px solid #DDDDDD;
-        border-radius: 3px;
+        .p2p-box;
     }
 
     .p2p-chat-txt textarea {
@@ -59,62 +162,4 @@
         margin: 0;
         box-shadow:1px 1px 7px -5px #000 inset;
     }
-
-    .p2p-chat-tb {
-        margin: 4px;
-        padding: 4px;
-        background-color: #EEEEEE;
-        border: 1px solid #DDDDDD;
-        border-radius: 3px;
-    }
-
-    .p2p-chat-tb-title {
-        color: #A21E18;
-        font-weight: bold;
-        margin-top: -1px;
-        position: absolute;
-        text-shadow: 1px 1px 1px #FFFFFF;
-    }
-
-    .p2p-chat-tb-btns {
-        float: right;
-    }
-
-    .p2p-chat-tb-btn {
-        float: right;
-        border: 1px solid #DDDDDD;
-        border-radius: 3px;
-        margin-left: 4px;
-        padding: 0 2px;
-        text-align: center;
-    }
-
-    .p2p-chat-msg {
-        padding: 0 4px 4px;
-    }
-
-    .p2p-chat-msg-pic {
-        float: left;
-        margin-right: 4px;
-    }
-
-    .p2p-chat-msg-pic img {
-        width: 32px;
-        height: 32px;
-        margin-top: 4px;
-    }
-
-    .p2p-chat-msg-name {
-        font-weight: bold;
-    }
-
-    .p2p-chat-msg-txt {
-        font-size: 0.9em;
-        margin-left: 35px;
-    }
-
-    .p2p-chat-clear {
-        clear: both;
-    }
-
 }

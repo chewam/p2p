@@ -1,11 +1,10 @@
 <html>
 
     <head>
-        <!-- <link rel="stylesheet" type="text/css" href="chat.css" /> -->
         <link href='http://fonts.googleapis.com/css?family=Lato' rel='stylesheet' type='text/css'>
         <link rel="stylesheet/less" type="text/css" href="../../src/client/css/chat.less">
         <script type="text/javascript" charset="utf-8" src="../../src/client/js/less-1.1.3.min.js"></script>
-        <script type="text/javascript" charset="utf-8" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+        <script type="text/javascript" charset="utf-8" src="http://code.jquery.com/jquery-latest.js"></script>
         <script type="text/javascript" charset="utf-8" src="../../src/client/js/P2PConnection.js"></script>
         <script type="text/javascript" charset="utf-8" src="../../src/client/js/chat.js"></script>
         <script type="text/javascript" charset="utf-8" src="script.js"></script>
@@ -15,36 +14,57 @@
 
         <!-- Debug -->
         <div class="debug">
-            <div>local id: <span id="localid"></span></div>
-            <div>remote id: <input id="remoteid" style="width: 500px"><button onclick="connect()">connect</button></div>
+            <!-- <div>local id: <span id="localid"></span></div>
+            <div>remote id: <span id="remoteid"></span></div> -->
+            <div>name: <input id="name" style="width: 200px"><button onclick="register()">connect</button></div>
         </div><!-- end of debug -->
 
         <br />
 
-        <!-- P2P Chat -->
-        <div class="p2p-chat">
-            <div class="p2p-chat-tb">
-                <div class="p2p-chat-tb-btns">
-                    <button class="p2p-chat-tb-btn">_</button>
-                    <button class="p2p-chat-tb-btn">hide camera</button>
-                    <div class="p2p-chat-clear"></div>
+        <table><tr><td>
+
+            <!-- P2P Chat -->
+            <div class="p2p-chat">
+                <div class="p2p-tb">
+                    <div class="p2p-tb-btns">
+                        <button class="p2p-tb-btn">_</button>
+                        <button class="p2p-tb-btn">hide camera</button>
+                        <div class="p2p-clear"></div>
+                    </div>
+                    <div class="p2p-tb-title">P2P CHAT</div>
+                    <div class="p2p-clear"></div>
                 </div>
-                <div class="p2p-chat-tb-title">P2P CHAT</div>
-                <div class="p2p-chat-clear"></div>
+                <div class="p2p-chat-cam">
+                    <object id='SWFP2PConnection' classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' codebase='http://fpdownload.macromedia.com/get/flashplayer/current/swflash.cab' height='100%' width='100%'>
+                        <param name='src' value='../../src/client/as/P2PConnection.swf'/>
+                        <param name='flashVars' value=''/>
+                        <param name='quality' value='high'/>
+                        <param name='BGCOLOR' value='#000000'/>
+                        <embed name='SWFP2PConnection' src='../../src/client/as/P2PConnection.swf' pluginspage='http://www.adobe.com/go/getflashplayer' height='100%' width='100%' flashVars='' bgcolor='#000000'/>
+                    </object>
+                </div>
+                <div class="p2p-chat-wall"></div>
+                <div class="p2p-chat-txt"><textarea></textarea></div>
             </div>
-            <div class="p2p-chat-cam" style="display: block">
-                <object id='SWFP2PConnection' classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' codebase='http://fpdownload.macromedia.com/get/flashplayer/current/swflash.cab' height='100%' width='100%'>
-                    <param name='src' value='../../src/client/as/P2PConnection.swf'/>
-                    <param name='flashVars' value=''/>
-                    <param name='quality' value='high'/>
-                    <param name='BGCOLOR' value='#000000'/>
-                    <embed name='SWFP2PConnection' src='../../src/client/as/P2PConnection.swf' pluginspage='http://www.adobe.com/go/getflashplayer' height='100%' width='100%' flashVars='' bgcolor='#000000'/>
-                </object>
+            <!-- end of P2P Chat -->
+
+        </td><td style="vertical-align: top">
+
+            <!-- P2P User List -->
+            <div class="p2p-userlist">
+                <div class="p2p-tb">
+                    <div class="p2p-tb-btns">
+                        <button class="p2p-tb-btn">_</button>
+                        <div class="p2p-clear"></div>
+                    </div>
+                    <div class="p2p-tb-title">P2P USER LIST</div>
+                    <div class="p2p-clear"></div>
+                </div>
+                <div class="p2p-userlist-list"></div>
             </div>
-            <div class="p2p-chat-wall"></div>
-            <div class="p2p-chat-txt"><textarea></textarea></div>
-        </div>
-        <!-- end of P2P Chat -->
+            <!-- P2P User List -->
+
+        </td></tr></table>
 
     </body>
 
